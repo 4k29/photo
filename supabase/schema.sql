@@ -38,9 +38,9 @@ create index if not exists photos_trip_day_idx on public.photos(trip_id, taken_o
 alter table public.trips enable row level security;
 alter table public.photos enable row level security;
 
-create policy "Owners can read their trips"
+create policy "Owners and visitors can read visible trips"
 on public.trips for select
-using (auth.uid() = owner_id or visibility = 'public');
+using (auth.uid() = owner_id or visibility in ('unlisted', 'public'));
 
 create policy "Owners can create trips"
 on public.trips for insert
@@ -58,13 +58,14 @@ on public.trips for delete
 to authenticated
 using (auth.uid() = owner_id);
 
-create policy "Owners and public visitors can read photos"
+create policy "Owners and visitors can read visible photos"
 on public.photos for select
 using (
   auth.uid() = owner_id
   or exists (
     select 1 from public.trips
-    where trips.id = photos.trip_id and trips.visibility = 'public'
+    where trips.id = photos.trip_id
+      and trips.visibility in ('unlisted', 'public')
   )
 );
 
@@ -89,41 +90,6 @@ create policy "Owners can delete photos"
 on public.photos for delete
 to authenticated
 using (auth.uid() = owner_id);
-
--- QR・リンクを知っている場合だけ、限定公開の旅を取得する関数。
-create or replace function public.get_public_trip(requested_slug text)
-returns setof public.trips
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select *
-  from public.trips
-  where slug = requested_slug
-    and visibility in ('unlisted', 'public')
-  limit 1;
-$$;
-
-create or replace function public.get_public_photos(requested_slug text)
-returns setof public.photos
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select photos.*
-  from public.photos
-  join public.trips on trips.id = photos.trip_id
-  where trips.slug = requested_slug
-    and trips.visibility in ('unlisted', 'public')
-  order by photos.taken_at asc;
-$$;
-
-revoke all on function public.get_public_trip(text) from public;
-revoke all on function public.get_public_photos(text) from public;
-grant execute on function public.get_public_trip(text) to anon, authenticated;
-grant execute on function public.get_public_photos(text) to anon, authenticated;
 
 -- UIだけでなくDBでも、1旅行・1日あたり9枚を超えないようにする。
 create or replace function public.enforce_daily_photo_limit()
