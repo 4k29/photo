@@ -35,7 +35,7 @@ function formatExif(tags={}){
 }
 async function readExif(file){
  try{
-  const exifr=await loadScript('./vendor/exifr.js',()=>window.exifr);
+  const exifr=await loadScript('./vendor/exifr.js',()=>window.exifr).catch(()=>loadScript('https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js',()=>window.exifr));
   const tags=await exifr.parse(file,{pick:EXIF_TAGS,gps:false,reviveValues:false});
   const data=formatExif(tags||{});return {data,status:Object.values(data).some(Boolean)?'ready':'none'};
  }catch{return {data:formatExif(),status:'error'}}
@@ -56,7 +56,7 @@ async function readImage(file){
  if(!heic&&!['image/jpeg','image/png','image/webp'].includes(file.type)&&!/\.(jpe?g|png|webp)$/i.test(file.name))throw Error('対応していない形式です');
  let im;try{im=await decodeImage(file)}catch(e){
   if(!heic)throw Error('写真を読み込めませんでした');
-  let convert;try{convert=await loadScript('./vendor/heic-to.js',()=>window.HeicTo)}catch{throw Error('HEIC変換機能を取得できませんでした')}
+  let convert;try{convert=await loadScript('./vendor/heic-to.js',()=>window.HeicTo).catch(()=>loadScript('https://cdn.jsdelivr.net/npm/heic-to@1.5.2/dist/iife/heic-to.js',()=>window.HeicTo))}catch{throw Error('HEIC変換機能を取得できませんでした')}
   try{im=await decodeImage(await convert({blob:file,type:'image/png'}))}catch{throw Error('このHEICを変換できませんでした')}
  }
  if(im.naturalWidth*im.naturalHeight>65000000)throw Error('6500万画素を超えています');
