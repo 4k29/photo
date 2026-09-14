@@ -27,7 +27,7 @@ function formatExif(tags={}){
  let make=clean(tags.Make),model=clean(tags.Model);
  const camera=model?(model.toLowerCase().startsWith(make.toLowerCase())?model:[make,model].filter(Boolean).join(' ')):make;
  const f=num(tags.FocalLength),a=num(tags.FNumber),t=num(tags.ExposureTime),iso=num(tags.ISO);
- const exposure=[f?round(f)+' mm':'',a?'f/'+round(a):'',t?(t<1?'1/'+Math.round(1/t)+' s':round(t)+' s'):'',iso?'ISO '+iso:''].filter(Boolean).join(' · ');
+ const exposure=[f?round(f)+' mm':'',a?'f/'+round(a):'',t?(t<1&&Math.abs(1/t-Math.round(1/t))/(1/t)<.01?'1/'+Math.round(1/t)+' s':String(Number(t.toPrecision(4)))+' s'):'',iso?'ISO '+iso:''].filter(Boolean).join(' · ');
  let date='';const d=tags.DateTimeOriginal;
  if(d instanceof Date&&!Number.isNaN(d.getTime())){const p=n=>String(n).padStart(2,'0');date=d.getFullYear()+'.'+p(d.getMonth()+1)+'.'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())}
  else if(typeof d==='string'){const m=d.match(/^(\d{4})[:-](\d\d)[:-](\d\d)[ T](\d\d):(\d\d)/);if(m)date=m[1]+'.'+m[2]+'.'+m[3]+' '+m[4]+':'+m[5]}
